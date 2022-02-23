@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!--#LAB3 I changed the background because it went better with the new map
+        Also, please look for the #LAB3 tag in the comments to find the newly added stuff since lab 2-->
+    <title>Main Page</title>
+    <h1>Welcome!</h1>
+    <!--Getting all libraries, stylesheets, etc. needed-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--  jQuery -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <!--#LAB3 Newly added references-->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.js"></script>
+    <!--#LAB3  I didn't really need a css file since I only adjusted the styles a little bit, as shown here:-->
+    <style>
+        #map {
+            position: relative;
+            top: 80px;
+            height: 500px;
+            width: 750px;
+            margin-left: auto;
+            margin-right: auto;
+
+        }
+
+
+        body {
+            background-image: url('backg.jpg');
+        }
+
+        div {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #toggle
+        {
+            height:40px;
+            width: 250px;
+            border-radius: 15px;
+            background-color: cornflowerblue;
+        }
+        
+    </style>
+
+</head>
+<body>
+
+    <!--Creating the search box-->
+    <div class="searchbox">
+        <h2> Select the date range from the widget below to find permit(s) in Calgary:</h2>
+        <!--Creating the form that retrives the from and to dates-->
+        <form onsubmit="getPermitsforDate(); return false;">
+            <label> Permits from:</label>
+            <input type="date" id="From_date">
+            <label> to:</label>
+            <input type="date" id="To_date">
+            <input class="button" type="submit" value="Find Permit(s)">
+            <button onclick="window.location.reload();">Refresh</button>
+        </form>
+
+    </div>
+    <!--#LAB3 Making a toggle switch to switch between the mapbox layers and the old basemap
+        This reference was used to help create the toggle switch: https://sebhastian.com/javascript-show-hide-div-onclick-toggle/#:~:text=To%20display%20or%20hide%20a,which%20is%20block%20)%20to%20none%20.
+        And also this: https://www.w3schools.com/howto/howto_js_toggle_hide_show.asp -->
+    <button id="toggle"> Click here to Toggle Layers</button>
+    <!--#LAB3 This div is hidden or shown based on the toggle button, above. In here, the new map is shown, and you can select the layers to view-->
+    <div class="LayerSelect">
+
+        <form id="layerform" onsubmit="change_MapLayer(); return false;">
+            <h2> Select the Traffic Incident Layers you would like to see: </h2>
+            <!--Each of the layers containing traffic incident data also have a heatmap-->
+            <p> Note: Each layer with data includes a heatmap</p>
+            <label for="layers"> Available Layers:</label>
+            <select id="layers">
+                <option value="n">None</option>
+                <option value="a">All</option>
+                <option value="v">Vehicle Related</option>
+                <option value="i">Non-Vehicle Related</option>
+                <option value="x">None (Basic/Old Basemap)</option>
+            </select>
+            <input type="submit" value="Show Layer">
+        </form>
+    </div>
+    <!--Putting map into a division map-->
+    <div id="map">
+
+    </div>
+
+
+    <script>
+        /*  #LAB3 STUFF   */
+        //Writing the script for the new stuff
+        //Layer for all incidents and heat map
+        let incidents_all = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzytbp7i00c915n7tmx94idq/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
+            attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>; <a href="https://www.mapbox.com/map-feedback/" target="_blank"> Improve this map</a>',
+        })
+        //Layer for just the basemap
+        let incidents_none = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzytlhx400cr15oa167iizao/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
+            attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>; <a href="https://www.mapbox.com/map-feedback/" target="_blank"> Improve this map</a>',
+        })
+        //Layer for vehicle related incidents
+        let incidents_v = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzytbnrv001m15tm3oga8mtj/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
+            attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>; <a href="https://www.mapbox.com/map-feedback/" target="_blank"> Improve this map</a>',
+        })
+        //Layer for non-vehilcle related incidents
+        let incidents_non_v = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzytbj0s00c815n7cthulfk3/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
+            attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>; <a href="https://www.mapbox.com/map-feedback/" target="_blank"> Improve this map</a>',
+        })
+        //Style with all layers above:
+        let incidents_all_layers = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzyto3yd007w14qm7sjj4n5g/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
+            attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">&copy; Mapbox</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>; <a href="https://www.mapbox.com/map-feedback/" target="_blank"> Improve this map</a>',
+        })
+        //This is the basemap from the previous lab:
+        let regular_basemap = L.tileLayer('https://api.maptiler.com/maps/osm-standard/{z}/{x}/{y}.jpg?key=wAlT1SgsokY1oXiOq5Ee', {
+            attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+        });
+        mapboxgl.accessToken = 'pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w'
+
+        //Initializing the map and setting its view to chosen geographical coordinates
+        var map = L.map('map').setView([51.0447, -114.0719], 11);
+
+
+        //#LAB3 Replacing the tile layer from last lab above, with the new mapbox map and its required attributions, below:
+        //By default, the baselayer of the mapbox map is shown
+        incidents_none.addTo(map);
+
+        //
+        //
+        /*#LAB3 Each time the toggle button is pressed, the page will alternate between showing the old map and allowing the user to select layers
+         * Basically, it alternates between hiding the traffic layer selection and showing it.
+         * When it is shown, it switches to the new map and reveals a layer selection form.
+         * When it is hidden, it switches to the old map.*/
+        const targetDiv = document.getElementById("layerform");
+        const btn = document.getElementById("toggle");
+        btn.onclick = function () {
+            if (targetDiv.style.display !== "none") {
+                targetDiv.style.display = "none";
+                map.removeLayer(incidents_none);
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_v);
+                map.removeLayer(incidents_non_v);
+                regular_basemap.addTo(map);
+            }
+            else {
+                targetDiv.style.display = "block";
+                map.removeLayer(regular_basemap);
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_v);
+                map.removeLayer(incidents_non_v);
+                incidents_none.addTo(map);
+            }
+        }
+
+        //--------------------------------------------------------------------------------------------------------------
+        //#LAB3 based on the query in "layers" the map layers will be changed accordingly
+        async function change_MapLayer() {
+            let layer_select = document.querySelector('#layers').value;
+            map.removeLayer(regular_basemap);
+            ; if (layer_select == 'n') {
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_non_v);
+                map.removeLayer(incidents_v);
+                incidents_none.addTo(map);
+
+            }
+            if (layer_select == 'a') {
+                map.removeLayer(incidents_none);
+                map.removeLayer(incidents_non_v);
+                map.removeLayer(incidents_v);
+                incidents_all.addTo(map);
+
+            }
+            if (layer_select == 'v') {
+                map.removeLayer(incidents_non_v);
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_none);
+                incidents_v.addTo(map);
+
+            }
+            if (layer_select == 'i') {
+                map.removeLayer(incidents_none);
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_v);
+                incidents_non_v.addTo(map);
+
+            }
+            if (layer_select == 'x') {
+                map.removeLayer(incidents_none);
+                map.removeLayer(incidents_all);
+                map.removeLayer(incidents_v);
+                map.removeLayer(incidents_non_v);
+                regular_basemap.addTo(map);
+
+            }
+
+        }
+
+        //-------------------------------------------------------------------------------------------------------------
+
+        //
+        //
+        //api url
+        let calgprops = 'https://data.calgary.ca/resource/c2es-76ed.geojson?';
+        //This function is called each time the "Find Permit(s)" button in the form above is clicked.
+
+        //#LAB3 this line, below, was inside the getPermits() function but it belongs in here so that it refreshes every time a new range is submitted
+        var pts = L.markerClusterGroup();
+
+        async function getPermitsforDate() {
+            //Using the dates to get the url needed to refresh the map
+            let from = document.querySelector('#From_date').value;
+            let to = document.querySelector('#To_date').value;
+            //let user_output_url = "https://data.calgary.ca/resource/c2es-76ed.geojson?$where=issueddate > '" + from + "' and issueddate < '" + to + "'";
+            let user_output_url = calgprops + '$where=issueddate > ' + '\'' + from + '\'' + ' and issueddate < ' + '\'' + to + '\'';
+            //get api
+            const data = await fetch(user_output_url);
+            //convert to json
+            let data_json = await data.json();
+            //getting all points for the query
+            //var pts = L.markerClusterGroup();
+            //Attaching the  required information to each point
+            const Geomark = L.geoJSON(data_json, {
+                onEachFeature: function (feature, layer) {
+                    var displayed_info = 'Date Issued: ' + feature.properties.issueddate + '<br></br>' + 'Work Class Group: ' + feature.properties.workclassgroup + '<br></br>' + 'Contractor Name: ' + feature.properties.contractorname + '<br></br>' + 'Community Name: ' + feature.properties.communityname + '<br></br>' + 'Original Address: ' + feature.properties.originaladdress;
+                    layer.bindPopup(displayed_info)
+                },
+            });
+            //Adding the descriptions to all the points in range
+            pts.addLayer(Geomark);
+            //adding all points to the map
+            map.addLayer(pts);
+
+        }
+
+    </script>
+</body>
+</html>
