@@ -103,6 +103,7 @@
 
     <script>
         /*  #LAB3 STUFF   */
+        //Getting new tile layers with the new mapbox map and required attributions:
         //Writing the script for the new stuff
         //Layer for all incidents and heat map
         let incidents_all = L.tileLayer('https://api.mapbox.com/styles/v1/zianz/ckzytbp7i00c915n7tmx94idq/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiemlhbnoiLCJhIjoiY2t6eHZ0aGp0MDVqZTJwcXZucjRrcGRqeiJ9.d_Rb_6BaRZks6GCvbgUS5w', {
@@ -134,8 +135,8 @@
         var map = L.map('map').setView([51.0447, -114.0719], 11);
 
 
-        //#LAB3 Replacing the tile layer from last lab above, with the new mapbox map and its required attributions, below:
-        //By default, the baselayer of the mapbox map is shown
+        //#LAB3 Getting new tile layers with the new mapbox map and required attributions:
+        //#LAB3 By default, the baselayer of the mapbox map is shown
         incidents_none.addTo(map);
 
         //
@@ -166,7 +167,7 @@
         }
 
         //--------------------------------------------------------------------------------------------------------------
-        //#LAB3 based on the query in "layers" the map layers will be changed accordingly
+        //#LAB3 based on the query in "layerform" form, the map layers will be changed accordingly
         async function change_MapLayer() {
             let layer_select = document.querySelector('#layers').value;
             map.removeLayer(regular_basemap);
@@ -217,7 +218,7 @@
         let calgprops = 'https://data.calgary.ca/resource/c2es-76ed.geojson?';
         //This function is called each time the "Find Permit(s)" button in the form above is clicked.
 
-        //#LAB3 this line, below, was inside the getPermits() function but it belongs in here so that it refreshes every time a new range is submitted
+        //#LAB3 this line, below, was inside the getPermitsforDate() function but it belongs in here so that it refreshes every time a new time range is submitted
         var pts = L.markerClusterGroup();
 
         async function getPermitsforDate() {
